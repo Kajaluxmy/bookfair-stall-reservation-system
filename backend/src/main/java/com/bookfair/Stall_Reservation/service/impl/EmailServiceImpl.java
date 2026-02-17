@@ -9,6 +9,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Collectors;
 
@@ -146,6 +147,8 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    // EMAIL 1: BOOKING CREATED (PENDING)
+
     @Override
     @Async
     public void sendBookingConfirmation(Reservation reservation, byte[] qrPng) {
@@ -198,6 +201,8 @@ public class EmailServiceImpl implements EmailService {
                             + "Thank you,\n" + SYSTEM_NAME);
         }
     }
+
+// EMAIL 2: PAYMENT CONFIRMED (Admin Approved) + QR
 
     @Override
     @Async
@@ -256,14 +261,109 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    //EMAIL 3: RESERVATION CANCELLATION
+
     @Override
+    @Async
     public void sendCancellationNotice(Reservation reservation) {
 
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Reservation Cancelled - Booking " + reservation.getBookingId());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "We would like to inform you that your reservation has been cancelled. "
+                    + "Please find the details below.</p>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Cancelled Booking Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Event", safe(reservation.getEvent().getName())),
+                    detailRow("Event Date", safe(reservation.getEvent().getEventDate())),
+                    detailRow("Stall(s)", getStallCodes(reservation)),
+                    detailRow("Total Amount", "Rs. " + safe(reservation.getTotalAmount())),
+                    detailRow("Cancellation Date", LocalDateTime.now().format(DATE_FMT)),
+                    detailRow("Status", badge("CANCELLED", "#dc3545")))
+                    + "<h3 style='margin:20px 0 8px;font-size:16px;color:#1a237e;'>Refund Information</h3>"
+                    + detailTable(
+                    detailRow("Refund Amount", "Rs. " + safe(reservation.getAdvanceAmount())),
+                    detailRow("Refund Status", badge("PENDING", "#ff9800")),
+                    detailRow("Refund Method", "Original payment method"))
+                    + "<div style='padding:16px;background-color:#fce4ec;border-left:4px solid #dc3545;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#b71c1c;font-weight:600;'>Important Information</p>"
+                    + "<ul style='margin:8px 0 0;padding-left:20px;font-size:13px;color:#616161;line-height:1.8;'>"
+                    + "<li>Refund will be processed within <strong>3-7 business days</strong></li>"
+                    + "<li>The refund will be credited to your original payment method</li>"
+                    + "<li>Your stall(s) have been released and are available for other vendors</li>"
+                    + "<li>If you have any questions, please contact our support team</li>"
+                    + "</ul></div>";
+
+            helper.setText(wrapInLayout("Your Reservation Has Been Cancelled", "#dc3545", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Reservation Cancelled - " + reservation.getBookingId(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "Your reservation " + reservation.getBookingId() + " for "
+                            + safe(reservation.getEvent().getName())
+                            + " has been cancelled.\nRefund will be processed within 3-7 business days.\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
     }
 
+    //EMAIL 4: REFUND SUCCESS
+
     @Override
+    @Async
     public void sendRefundNotice(Reservation reservation) {
 
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Refund Successfully Processed - Booking " + reservation.getBookingId());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "We are pleased to inform you that your refund has been successfully processed. "
+                    + "Please find the details below.</p>"
+                    + "<div style='text-align:center;margin:20px 0;'>"
+                    + "<div style='display:inline-block;padding:12px 28px;background-color:#e8f5e9;border-radius:50px;border:2px solid #4caf50;'>"
+                    + "<span style='font-size:18px;color:#2e7d32;font-weight:700;'>&#10004; Refund Completed</span>"
+                    + "</div></div>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Refund Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Event", safe(reservation.getEvent().getName())),
+                    detailRow("Refund Amount", "Rs. " + safe(reservation.getAdvanceAmount())),
+                    detailRow("Payment Method", safe(reservation.getPaymentMethod())),
+                    detailRow("Refund Date", LocalDateTime.now().format(DATE_FMT)),
+                    detailRow("Refund Status", badge("COMPLETED", "#28a745")))
+                    + "<div style='padding:16px;background-color:#e8f5e9;border-left:4px solid #28a745;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#1b5e20;font-weight:600;'>Important Information</p>"
+                    + "<ul style='margin:8px 0 0;padding-left:20px;font-size:13px;color:#616161;line-height:1.8;'>"
+                    + "<li>The refund amount may take <strong>3-7 business days</strong> to reflect in your account</li>"
+                    + "<li>Processing time depends on your bank or payment provider</li>"
+                    + "<li>If you do not receive the refund after 7 business days, please contact support</li>"
+                    + "</ul></div>";
+
+            helper.setText(wrapInLayout("Your Refund Has Been Successfully Processed", "#28a745", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Refund Processed - " + reservation.getBookingId(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "Your refund for reservation " + reservation.getBookingId()
+                            + " has been processed.\nAmount: Rs. " + safe(reservation.getAdvanceAmount())
+                            + "\nIt may take 3-7 business days to reflect in your account.\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
     }
 
     @Override

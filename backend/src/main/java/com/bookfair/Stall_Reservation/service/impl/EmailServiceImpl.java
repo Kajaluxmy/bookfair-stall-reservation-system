@@ -2,7 +2,11 @@ package com.bookfair.Stall_Reservation.service.impl;
 
 import com.bookfair.Stall_Reservation.entity.Reservation;
 import com.bookfair.Stall_Reservation.service.EmailService;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.format.DateTimeFormatter;
@@ -128,9 +132,128 @@ public class EmailServiceImpl implements EmailService {
                 + note + "</div>";
     }
 
-    @Override
-    public void sendBookingConfirmation(Reservation reservation, byte[] qrPng) {
 
+    private void sendPlainTextFallback(String to, String subject, String text) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(text, false);
+            mailSender.send(msg);
+        } catch (Exception ignored) {
+            // Silently fail
+        }
+    }
+
+    @Override
+    @Async
+    public void sendBookingConfirmation(Reservation reservation, byte[] qrPng) {
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Booking Received - Awaiting Payment Confirmation - " + reservation.getBookingId());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "Thank you for your booking! We have received your reservation request and payment details. "
+                    + "Our admin team will verify your payment shortly.</p>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Booking Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Event", safe(reservation.getEvent().getName())),
+                    detailRow("Event Date", safe(reservation.getEvent().getEventDate())),
+                    detailRow("Location", safe(reservation.getEvent().getLocation())),
+                    detailRow("Stall(s)", getStallCodes(reservation)),
+                    detailRow("Genre(s)", getGenres(reservation)),
+                    detailRow("Total Amount", "Rs. " + safe(reservation.getTotalAmount())),
+                    detailRow("Advance Amount", "Rs. " + safe(reservation.getAdvanceAmount())),
+                    detailRow("Payment Method", safe(reservation.getPaymentMethod())),
+                    detailRow("Payment Status", badge("PENDING", "#ff9800")))
+                    + (qrPng != null ? qrSection(false) : "")
+                    + "<div style='padding:16px;background-color:#fff3e0;border-left:4px solid #ff9800;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#e65100;font-weight:600;'>What happens next?</p>"
+                    + "<ul style='margin:8px 0 0;padding-left:20px;font-size:13px;color:#616161;line-height:1.8;'>"
+                    + "<li>Our admin team will review and verify your payment</li>"
+                    + "<li>You will receive a <strong>Payment Confirmation</strong> email once approved</li>"
+                    + "<li>Your QR code will be activated after confirmation</li>"
+                    + "</ul></div>";
+
+            helper.setText(wrapInLayout("Your Booking Has Been Received", "#ff9800", body), true);
+            if (qrPng != null) {
+                helper.addInline("qrCodeImage", new ByteArrayResource(qrPng), "image/png");
+            }
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Booking Received - " + reservation.getBookingId(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "Your booking " + reservation.getBookingId() + " for "
+                            + safe(reservation.getEvent().getName())
+                            + " has been received.\nTotal: Rs. " + safe(reservation.getTotalAmount())
+                            + "\nStatus: PENDING\n\nOur admin team will verify your payment shortly.\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
+    }
+
+    @Override
+    @Async
+    public void sendPaymentConfirmation(Reservation reservation, byte[] qrPng) {
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Payment Confirmed - Booking " + reservation.getBookingId());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "Great news! Your payment has been successfully verified and confirmed by our admin team. "
+                    + "Your reservation is now active.</p>"
+                    + "<div style='text-align:center;margin:20px 0;'>"
+                    + "<div style='display:inline-block;padding:12px 28px;background-color:#e8f5e9;border-radius:50px;border:2px solid #4caf50;'>"
+                    + "<span style='font-size:18px;color:#2e7d32;font-weight:700;'>&#10004; Payment Confirmed</span>"
+                    + "</div></div>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Booking Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Event", safe(reservation.getEvent().getName())),
+                    detailRow("Event Date", safe(reservation.getEvent().getEventDate())),
+                    detailRow("Location", safe(reservation.getEvent().getLocation())),
+                    detailRow("Stall(s)", getStallCodes(reservation)),
+                    detailRow("Amount Paid", "Rs. " + safe(reservation.getAdvanceAmount())),
+                    detailRow("Payment Method", safe(reservation.getPaymentMethod())),
+                    detailRow("Payment Status", badge("CONFIRMED", "#28a745")))
+                    + (qrPng != null ? qrSection(true) : "")
+                    + "<div style='padding:16px;background-color:#e3f2fd;border-left:4px solid #1976d2;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#0d47a1;font-weight:600;'>Important Instructions</p>"
+                    + "<ul style='margin:8px 0 0;padding-left:20px;font-size:13px;color:#616161;line-height:1.8;'>"
+                    + "<li>Please arrive at the venue <strong>30 minutes before</strong> the event starts</li>"
+                    + "<li>Your QR code is valid for <strong>one-time entry</strong> only</li>"
+                    + "<li>Do <strong>not share</strong> your QR code with anyone</li>"
+                    + "<li>Carry a valid photo ID for verification</li>"
+                    + "</ul></div>";
+
+            helper.setText(wrapInLayout("Your Payment Has Been Successfully Confirmed", "#28a745", body), true);
+            if (qrPng != null) {
+                helper.addInline("qrCodeImage", new ByteArrayResource(qrPng), "image/png");
+            }
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Payment Confirmed - " + reservation.getBookingId(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "Your payment for booking " + reservation.getBookingId() + " has been confirmed.\n"
+                            + "Event: " + safe(reservation.getEvent().getName()) + "\n"
+                            + "Amount: Rs. " + safe(reservation.getAdvanceAmount()) + "\n\n"
+                            + "Please present your QR code at the venue.\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
     }
 
     @Override
@@ -145,11 +268,6 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendEventRemovedNotice(String vendorEmail, String eventName, String bookingId) {
-
-    }
-
-    @Override
-    public void sendPaymentConfirmation(Reservation reservation, byte[] qrPng) {
 
     }
 

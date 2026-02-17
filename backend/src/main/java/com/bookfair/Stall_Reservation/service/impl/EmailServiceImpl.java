@@ -445,14 +445,97 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    // EMAIL 7: CANCELLATION DEADLINE REMINDER
+
     @Override
+    @Async
     public void sendCancellationDeadlineReminder(Reservation reservation) {
 
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Reminder: Cancellation Deadline Approaching - " + reservation.getBookingId());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "This is a friendly reminder that the cancellation deadline for your reservation is approaching. "
+                    + "After this date, cancellation will no longer be possible.</p>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Booking Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Event", safe(reservation.getEvent().getName())),
+                    detailRow("Event Date", safe(reservation.getEvent().getEventDate())),
+                    detailRow("Cancellation Deadline",
+                            "<strong style='color:#dc3545;'>" + safe(reservation.getCancellationDeadline())
+                                    + "</strong>"))
+                    + "<div style='padding:16px;background-color:#fff8e1;border-left:4px solid #ffc107;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#f57f17;font-weight:600;'>Important</p>"
+                    + "<p style='margin:8px 0 0;font-size:13px;color:#616161;line-height:1.6;'>"
+                    + "If you wish to cancel your reservation, please do so before <strong>"
+                    + safe(reservation.getCancellationDeadline())
+                    + "</strong>. No cancellations or refunds will be allowed after this date.</p>"
+                    + "</div>";
+
+            helper.setText(wrapInLayout("Cancellation Deadline Reminder", "#ffc107", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Cancellation Deadline Reminder - " + reservation.getBookingId(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "Reminder: The cancellation deadline for booking " + reservation.getBookingId()
+                            + " is " + safe(reservation.getCancellationDeadline()) + ".\n"
+                            + "After this date, cancellation will not be possible.\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
     }
 
+    // EMAIL 8: EVENT REMINDER (2 DAYS BEFORE)
+
     @Override
+    @Async
     public void sendEventReminder(Reservation reservation) {
 
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Upcoming Event Reminder - " + reservation.getEvent().getName());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "We are excited to remind you that the event <strong>" + safe(reservation.getEvent().getName())
+                    + "</strong> is coming up in 2 days!</p>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Event Details</h3>"
+                    + detailTable(
+                    detailRow("Event Name", safe(reservation.getEvent().getName())),
+                    detailRow("Date & Time", safe(reservation.getEvent().getEventDate())),
+                    detailRow("Location", safe(reservation.getEvent().getLocation())),
+                    detailRow("Your Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Stall(s)", getStallCodes(reservation)))
+                    + "<div style='padding:16px;background-color:#e3f2fd;border-left:4px solid #1976d2;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#0d47a1;font-weight:600;'>Preparation Tips</p>"
+                    + "<ul style='margin:8px 0 0;padding-left:20px;font-size:13px;color:#616161;line-height:1.8;'>"
+                    + "<li>Ensure you have your QR code ready for entry</li>"
+                    + "<li>Arrive at least 30 minutes before the start time</li>"
+                    + "<li>Bring any necessary equipment or materials for your stall</li>"
+                    + "</ul></div>";
+
+            helper.setText(wrapInLayout("Event Reminder: " + reservation.getEvent().getName(), "#1976d2", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Event Reminder - " + reservation.getEvent().getName(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "Reminder: The event " + safe(reservation.getEvent().getName()) + " is in 2 days.\n"
+                            + "Date: " + safe(reservation.getEvent().getEventDate()) + "\n"
+                            + "Location: " + safe(reservation.getEvent().getLocation()) + "\n\n"
+                            + "See you there!\n" + SYSTEM_NAME);
+        }
     }
 
     @Override

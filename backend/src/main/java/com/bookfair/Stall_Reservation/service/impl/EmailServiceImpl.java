@@ -538,9 +538,41 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    // EMAIL 9: VENDOR CANCELLATION SUCCESS
+
     @Override
+    @Async
     public void sendVendorCancellationSuccess(Reservation reservation) {
 
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(reservation.getVendor().getEmail());
+            helper.setSubject("Cancellation Confirmed - Booking " + reservation.getBookingId());
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + safe(reservation.getVendor().getName()) + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "You have successfully cancelled your reservation. Below are the details of the cancellation.</p>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Cancellation Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + safe(reservation.getBookingId()) + "</strong>"),
+                    detailRow("Event", safe(reservation.getEvent().getName())),
+                    detailRow("Cancellation Date", LocalDateTime.now().format(DATE_FMT)),
+                    detailRow("Status", badge("CANCELLED", "#757575")))
+                    + "<p style='margin:16px 0;font-size:14px;color:#616161;'>If you made an advance payment, a refund request has been automatically initiated and will be processed by our admin team shortly.</p>";
+
+            helper.setText(wrapInLayout("Cancellation Confirmed", "#616161", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(
+                    reservation.getVendor().getEmail(),
+                    "Cancellation Confirmed - " + reservation.getBookingId(),
+                    "Dear " + safe(reservation.getVendor().getName()) + ",\n\n"
+                            + "You have successfully cancelled booking " + reservation.getBookingId() + ".\n"
+                            + "Any applicable refund will be processed shortly.\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
     }
 
 

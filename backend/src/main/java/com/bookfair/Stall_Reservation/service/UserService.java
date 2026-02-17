@@ -1,5 +1,4 @@
 package com.bookfair.Stall_Reservation.service;
-
 import java.util.Map;
 
 public interface UserService {
@@ -7,4 +6,3 @@ public interface UserService {
 
     void updateProfile(Long userId, Map<String, String> updates);
 }
-

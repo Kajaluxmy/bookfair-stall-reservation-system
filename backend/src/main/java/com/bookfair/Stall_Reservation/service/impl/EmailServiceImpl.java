@@ -366,9 +366,83 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    // EMAIL 5: EVENT REMOVED / CANCELLED
+
     @Override
+    @Async
     public void sendEventRemovedNotice(String vendorEmail, String eventName, String bookingId) {
 
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(vendorEmail);
+            helper.setSubject("Event Cancelled - " + eventName + " - Booking " + bookingId);
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear Vendor,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "We regret to inform you that the event <strong>" + eventName
+                    + "</strong> has been cancelled by the organizer. Your associated booking has been automatically cancelled.</p>"
+                    + "<h3 style='margin:0 0 8px;font-size:16px;color:#1a237e;'>Details</h3>"
+                    + detailTable(
+                    detailRow("Booking ID", "<strong>" + bookingId + "</strong>"),
+                    detailRow("Event", eventName),
+                    detailRow("Cancellation Date", LocalDateTime.now().format(DATE_FMT)),
+                    detailRow("Status", badge("EVENT REMOVED", "#dc3545")))
+                    + "<div style='padding:16px;background-color:#fff3e0;border-left:4px solid #ff9800;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#e65100;font-weight:600;'>Refund Notice</p>"
+                    + "<p style='margin:8px 0 0;font-size:13px;color:#616161;line-height:1.6;'>"
+                    + "A full refund will be processed automatically. Please allow <strong>3-7 business days</strong> for the amount to reflect in your account.</p>"
+                    + "</div>";
+
+            helper.setText(wrapInLayout("Event Cancelled - Booking Automatically Cancelled", "#dc3545", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(vendorEmail,
+                    "Event Cancelled - " + eventName,
+                    "Dear Vendor,\n\nThe event " + eventName + " has been removed.\nYour booking " + bookingId
+                            + " is cancelled and a full refund will be issued.\n\nThank you,\n" + SYSTEM_NAME);
+        }
+    }
+
+    // EMAIL 6: ACCOUNT DEACTIVATED
+
+    @Override
+    @Async
+    public void sendAccountDeactivatedNotice(String email, String name) {
+
+        try {
+            MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
+            helper.setTo(email);
+            helper.setSubject("Account Deactivated - " + SYSTEM_NAME);
+
+            String body = "<p style='margin:0 0 16px;font-size:15px;color:#424242;line-height:1.6;'>"
+                    + "Dear <strong>" + (name != null ? name : "User") + "</strong>,</p>"
+                    + "<p style='margin:0 0 20px;font-size:14px;color:#616161;line-height:1.6;'>"
+                    + "We would like to inform you that your vendor account has been deactivated by the administrator.</p>"
+                    + "<div style='text-align:center;margin:20px 0;'>"
+                    + "<div style='display:inline-block;padding:12px 28px;background-color:#fce4ec;border-radius:50px;border:2px solid #e57373;'>"
+                    + "<span style='font-size:16px;color:#c62828;font-weight:700;'>&#128274; Account Deactivated</span>"
+                    + "</div></div>"
+                    + "<div style='padding:16px;background-color:#fff3e0;border-left:4px solid #ff9800;border-radius:0 8px 8px 0;margin:16px 0;'>"
+                    + "<p style='margin:0;font-size:14px;color:#e65100;font-weight:600;'>What does this mean?</p>"
+                    + "<ul style='margin:8px 0 0;padding-left:20px;font-size:13px;color:#616161;line-height:1.8;'>"
+                    + "<li>You will no longer be able to log in to your account</li>"
+                    + "<li>Any active reservations may be cancelled</li>"
+                    + "<li>If you believe this is an error, please contact our support team immediately</li>"
+                    + "</ul></div>";
+
+            helper.setText(wrapInLayout("Account Deactivation Notice", "#dc3545", body), true);
+            mailSender.send(msg);
+        } catch (Exception e) {
+            sendPlainTextFallback(email,
+                    "Account Deactivated - " + SYSTEM_NAME,
+                    "Dear " + (name != null ? name : "User") + ",\n\n"
+                            + "Your vendor account has been deactivated by the administrator.\n"
+                            + "If you believe this is an error, please contact support at " + SUPPORT_EMAIL + ".\n\n"
+                            + "Thank you,\n" + SYSTEM_NAME);
+        }
     }
 
     @Override
@@ -386,8 +460,5 @@ public class EmailServiceImpl implements EmailService {
 
     }
 
-    @Override
-    public void sendAccountDeactivatedNotice(String email, String name) {
 
-    }
 }

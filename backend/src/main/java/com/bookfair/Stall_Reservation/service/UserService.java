@@ -6,3 +6,4 @@ public interface UserService {
 
     void updateProfile(Long userId, Map<String, String> updates);
 }
+

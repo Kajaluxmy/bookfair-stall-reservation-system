@@ -1,6 +1,5 @@
 package com.bookfair.Stall_Reservation.service.impl;
 
-
 import com.bookfair.Stall_Reservation.entity.User;
 import com.bookfair.Stall_Reservation.repository.UserRepository;
 import com.bookfair.Stall_Reservation.service.UserService;

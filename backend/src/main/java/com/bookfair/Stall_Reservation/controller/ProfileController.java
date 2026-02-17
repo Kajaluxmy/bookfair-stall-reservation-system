@@ -1,6 +1,5 @@
 package com.bookfair.Stall_Reservation.controller;
 
-
 import com.bookfair.Stall_Reservation.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

@@ -167,6 +167,116 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    @Transactional
+    public void approveReservation(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+        Payment payment = paymentRepository.findByReservation(reservation)
+                .orElseThrow(() -> new IllegalArgumentException("Payment not found"));
+
+        if (reservation.getStatus() == ReservationStatus.SUCCESS) {
+            return; // Already approved
+        }
+
+        reservation.setStatus(ReservationStatus.SUCCESS);
+        payment.setStatus(PaymentStatus.COMPLETED);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+
+        reservationRepository.save(reservation);
+
+        // Re-send confirmation or just status update? Prompt says "Send confirmation email"
+        // We can regenerate QR or just send the email.
+        byte[] qrPng = qrCodeService.generatePng(reservation.getBookingId(), 256);
+
+        reservation.getVendor().getEmail();
+        reservation.getEvent().getName();
+
+        emailService.sendPaymentConfirmation(reservation, qrPng);
+
+        eventPublisher.publishEvent(
+                new StallBookingEvent(this, reservation.getEvent() != null ? reservation.getEvent().getId() : 0L));
+    }
+
+    @Override
+    @Transactional
+    public void refundReservation(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+
+        if (reservation.getStatus() == ReservationStatus.REFUNDED) {
+            return;
+        }
+
+        reservation.setStatus(ReservationStatus.REFUNDED);
+        reservationRepository.save(reservation);
+
+        Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
+        if (payment != null) {
+            payment.setStatus(PaymentStatus.REFUNDED);
+            payment.setRefundedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+        }
+
+        reservation.getVendor().getEmail();
+        reservation.getEvent().getName();
+
+        reservation.getLogs().add(new ReservationLog(reservation, "REFUNDED", "Reservation refunded by Admin."));
+        reservationRepository.save(reservation);
+
+        emailService.sendRefundNotice(reservation);
+        eventPublisher.publishEvent(new StallBookingEvent(this, reservation.getEvent().getId()));
+    }
+
+    @Override
+    @Transactional
+    public void rejectReservation(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+
+        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+            return;
+        }
+
+        reservation.setStatus(ReservationStatus.CANCELLED);
+        reservationRepository.save(reservation);
+
+        reservation.getVendor().getEmail();
+        reservation.getEvent().getName();
+
+        emailService.sendCancellationNotice(reservation);
+        eventPublisher.publishEvent(new StallBookingEvent(this, reservation.getEvent().getId()));
+    }
+
+    @Override
+    @Transactional
+    public void rejectAndRefund(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+
+        // Allow transitioning from PENDING or APPROVED/SUCCESS to REFUNDED
+        if (reservation.getStatus() == ReservationStatus.REFUNDED) {
+            return;
+        }
+
+        reservation.setStatus(ReservationStatus.REFUNDED);
+        reservationRepository.save(reservation);
+
+        Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
+        if (payment != null) {
+            payment.setStatus(PaymentStatus.REFUNDED);
+            payment.setRefundedAt(LocalDateTime.now());
+            paymentRepository.save(payment);
+        }
+
+        reservation.getVendor().getEmail();
+        reservation.getEvent().getName();
+
+        emailService.sendRefundNotice(reservation);
+        eventPublisher.publishEvent(new StallBookingEvent(this, reservation.getEvent().getId()));
+    }
+
+    @Override
     public List<Reservation> getReservationsForVendor(Long vendorId) {
         User vendor = userRepository.findById(vendorId)
                 .orElseThrow(() -> new IllegalArgumentException("Vendor not found"));

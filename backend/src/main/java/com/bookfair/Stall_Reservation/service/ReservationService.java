@@ -13,7 +13,13 @@ public interface ReservationService {
 //  Create a pending reservation for a vendor
     Reservation createPendingReservation(CreateBookingRequest request, Long vendorId);
 
+    void approveReservation(Long reservationId);
 
+    void rejectReservation(Long reservationId);
+
+    void refundReservation(Long reservationId);
+
+    void rejectAndRefund(Long reservationId);
 
 //  Get all reservations for a specific vendor
     List<Reservation> getReservationsForVendor(Long vendorId);

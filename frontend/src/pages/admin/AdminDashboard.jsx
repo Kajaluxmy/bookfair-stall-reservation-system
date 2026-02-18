@@ -250,6 +250,147 @@ export default function AdminDashboard() {
         )}
       </div>
 
+        {/* Quick Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Collection Rate Card - FIXED */}
+        <div className="group relative bg-gradient-to-br from-white to-amber-50 rounded-2xl shadow-xl p-6 border border-amber-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-300/10 rounded-full -ml-8 -mb-8 group-hover:scale-150 transition-transform duration-700"></div>
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg shadow-amber-200/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-xs font-semibold tracking-wider text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
+                COLLECTION
+              </span>
+            </div>
+            
+            <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-amber-400 mb-1">
+              {(() => {
+                const received = data.totalReceivedAmount || 0;
+                const pending = data.totalPendingAmount || 0;
+                const total = received + pending;
+                if (total === 0) return '0%';
+                return `${Math.round((received / total) * 100)}%`;
+              })()}
+            </p>
+            <p className="text-sm text-stone-500 font-medium">of total revenue collected</p>
+            
+            <div className="mt-4 h-2 bg-stone-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-500"
+                style={{ 
+                  width: (() => {
+                    const received = data.totalReceivedAmount || 0;
+                    const pending = data.totalPendingAmount || 0;
+                    const total = received + pending;
+                    if (total === 0) return '0%';
+                    return `${Math.round((received / total) * 100)}%`;
+                  })()
+                }}
+              ></div>
+            </div>
+
+            {/* FIXED: Status message now shows collected amount correctly */}
+            <p className="text-xs text-amber-600 mt-3 font-medium flex items-center gap-1">
+              {data.totalReceivedAmount > 0 ? (
+                <>
+                  <span>✓</span> Rs.{Number(data.totalReceivedAmount).toFixed(2)} collected
+                  {data.totalPendingAmount > 0 && (
+                    <span className="ml-1">(Rs.{Number(data.totalPendingAmount).toFixed(2)} pending)</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span>📊</span> No revenue data
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+
+        {/* Average per Reservation Card */}
+        <div className="group relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-xl p-6 border border-blue-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200/20 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-300/10 rounded-full -ml-8 -mb-8 group-hover:scale-150 transition-transform duration-700"></div>
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-200/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <span className="text-xs font-semibold tracking-wider text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+                AVERAGE
+              </span>
+            </div>
+            
+            <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-1">
+              Rs.{data.totalReservations 
+                ? ((data.totalReceivedAmount + data.totalPendingAmount) / data.totalReservations).toFixed(2)
+                : '0.00'}
+            </p>
+            <p className="text-sm text-stone-500 font-medium">average amount per booking</p>
+            
+            <div className="mt-4 flex items-end justify-between h-8">
+              <div className="w-8 bg-blue-200 rounded-t-lg h-4 group-hover:h-6 transition-all duration-300"></div>
+              <div className="w-8 bg-blue-300 rounded-t-lg h-6 group-hover:h-8 transition-all duration-300"></div>
+              <div className="w-8 bg-blue-400 rounded-t-lg h-8 group-hover:h-10 transition-all duration-300"></div>
+              <div className="w-8 bg-blue-500 rounded-t-lg h-5 group-hover:h-7 transition-all duration-300"></div>
+              <div className="w-8 bg-blue-200 rounded-t-lg h-3 group-hover:h-5 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Actions Card */}
+        <div className="group relative bg-gradient-to-br from-white to-purple-50 rounded-2xl shadow-xl p-6 border border-purple-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/20 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-300/10 rounded-full -ml-8 -mb-8 group-hover:scale-150 transition-transform duration-700"></div>
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg shadow-purple-200/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {data.pendingReservations > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+                )}
+              </div>
+              <span className="text-xs font-semibold tracking-wider text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+                ACTION NEEDED
+              </span>
+            </div>
+            
+            <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-purple-400 mb-1">
+              {data.pendingReservations || 0}
+            </p>
+            <p className="text-sm text-stone-500 font-medium">reservations need approval</p>
+            
+            {data.pendingReservations > 0 ? (
+              <>
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="relative">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                  </div>
+                  <span className="text-sm text-stone-600">
+                    {data.pendingReservations} pending {data.pendingReservations === 1 ? 'reservation' : 'reservations'}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-stone-400 mt-4">No pending reservations</p>
+            )}
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

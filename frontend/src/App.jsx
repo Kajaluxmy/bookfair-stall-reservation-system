@@ -1,11 +1,13 @@
-function App() {
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-blue-600">
-        Tailwind is working..
-      </h1>
-     </div>
-  )
-}
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import Layout from './components/Layout';
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}

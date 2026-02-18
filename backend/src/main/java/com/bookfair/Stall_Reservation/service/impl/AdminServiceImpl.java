@@ -8,9 +8,11 @@ import com.bookfair.Stall_Reservation.service.AdminService;
 import com.bookfair.Stall_Reservation.service.EmailService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -103,6 +105,86 @@ public class AdminServiceImpl implements AdminService {
                 "genreDistribution", genreStats,
                 "pendingReservations", pendingReservations,
                 "recentCancellations", recentCancellations);
+    }
+
+    @Override
+    public List<Map<String, Object>> listVendors() {
+        List<User> vendors = userRepository.findByRole(UserRole.VENDOR);
+        return vendors.stream()
+                .map(v -> Map.<String, Object>of(
+                        "id", v.getId(),
+                        "name", v.getName(),
+                        "email", v.getEmail(),
+                        "phone", v.getPhone() != null ? v.getPhone() : ""))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, Object> getVendorDetail(Long id) {
+        User vendor = userRepository.findById(id).orElse(null);
+        if (vendor == null || vendor.getRole() != UserRole.VENDOR)
+            return null;
+        List<Reservation> reservations = reservationRepository.findByVendorOrderByBookingDatetimeDesc(vendor);
+        List<Map<String, Object>> bookings = reservations.stream()
+                // .filter(r -> r.getStatus() != ReservationStatus.CANCELLED && r.getStatus() !=
+                // ReservationStatus.EVENT_REMOVED) // User wants to see ALL
+                .map(r -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", r.getId());
+                    map.put("bookingId", r.getBookingId());
+                    map.put("eventName", r.getEvent().getName());
+                    map.put("status", r.getStatus().name());
+                    map.put("paymentMethod", r.getPaymentMethod() != null ? r.getPaymentMethod().name() : "");
+                    map.put("accountNumber", r.getAccountNumber() != null ? r.getAccountNumber() : "");
+                    map.put("bankName", r.getBankName() != null ? r.getBankName() : "");
+                    map.put("address", r.getAddress() != null ? r.getAddress() : "");
+                    map.put("totalAmount", r.getTotalAmount());
+                    map.put("stallCodes", r.getStalls().stream().map(rs -> rs.getStall().getStallCode())
+                            .collect(Collectors.joining(", ")));
+                    map.put("genres", r.getGenres().stream().map(rg -> rg.getGenre().getName())
+                            .collect(Collectors.joining(", ")));
+                    map.put("qrCodeValue", r.getQrCodeValue() != null ? r.getQrCodeValue() : "");
+
+                    // Include logs
+                    List<Map<String, Object>> logList = r.getLogs() != null ? r.getLogs().stream()
+                            .map(l -> Map.<String, Object>of(
+                                    "action", l.getAction(),
+                                    "details", l.getDetails(),
+                                    "timestamp", l.getTimestamp().toString()))
+                            .collect(Collectors.toList()) : List.of();
+
+                    map.put("logs", logList);
+
+                    return map;
+                })
+                .collect(Collectors.toList());
+        return Map.of(
+                "id", vendor.getId(),
+                "name", vendor.getName(),
+                "email", vendor.getEmail(),
+                "phone", vendor.getPhone() != null ? vendor.getPhone() : "",
+                "businessName", vendor.getBusinessName() != null ? vendor.getBusinessName() : "",
+                "reservations", bookings);
+    }
+
+    @Override
+    @Transactional
+    public void deactivateVendor(Long id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Vendor not found"));
+        if (user.getRole() != UserRole.VENDOR)
+            throw new IllegalArgumentException("User is not a vendor");
+        user.setActive(false);
+        userRepository.save(user);
+        emailService.sendAccountDeactivatedNotice(user.getEmail(), user.getName());
+    }
+
+    @Override
+    @Transactional
+    public void cancelReservation(Long id) {
+        Reservation r = reservationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found"));
+        r.setStatus(ReservationStatus.CANCELLED);
+        reservationRepository.save(r);
     }
 
 }

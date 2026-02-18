@@ -15,4 +15,16 @@ public interface AdminService {
 
     void cancelReservation(Long id);
 
+    Map<String, Object> getProfile(Long adminId);
+
+    void updateProfile(Long adminId, Map<String, Object> updates);
+
+    void changePassword(Long userId, String newPassword);
+
+    List<Map<String, Object>> listAdmins();
+
+    Long addAdmin(Map<String, String> body);
+
+    void removeAdmin(Long id);
+
 }

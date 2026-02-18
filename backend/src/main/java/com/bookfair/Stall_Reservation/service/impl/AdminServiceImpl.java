@@ -187,4 +187,71 @@ public class AdminServiceImpl implements AdminService {
         reservationRepository.save(r);
     }
 
+    @Override
+    public Map<String, Object> getProfile(Long adminId) {
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin not found"));
+        return Map.of(
+                "name", admin.getName(),
+                "email", admin.getEmail(),
+                "phone", admin.getPhone() != null ? admin.getPhone() : "");
+    }
+
+    @Override
+    @Transactional
+    public void updateProfile(Long adminId, Map<String, Object> updates) {
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new IllegalArgumentException("Admin not found"));
+        if (updates.containsKey("name"))
+            admin.setName((String) updates.get("name"));
+        if (updates.containsKey("phone"))
+            admin.setPhone((String) updates.get("phone"));
+        userRepository.save(admin);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, String newPassword) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
+    public List<Map<String, Object>> listAdmins() {
+        List<User> admins = userRepository.findByRole(UserRole.ADMIN);
+        return admins.stream()
+                .map(a -> Map.<String, Object>of(
+                        "id", a.getId(),
+                        "name", a.getName(),
+                        "email", a.getEmail(),
+                        "phone", a.getPhone() != null ? a.getPhone() : ""))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public Long addAdmin(Map<String, String> body) {
+        if (userRepository.existsByEmail(body.get("email"))) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        User admin = new User();
+        admin.setName(body.get("name"));
+        admin.setEmail(body.get("email"));
+        admin.setPhone(body.getOrDefault("phone", ""));
+        admin.setPasswordHash(passwordEncoder.encode(body.get("password")));
+        admin.setRole(UserRole.ADMIN);
+        userRepository.save(admin);
+        return admin.getId();
+    }
+
+    @Override
+    @Transactional
+    public void removeAdmin(Long id) {
+        User admin = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Admin not found"));
+        if (admin.getRole() != UserRole.ADMIN)
+            throw new IllegalArgumentException("User is not an admin");
+        userRepository.delete(admin);
+    }
+
 }

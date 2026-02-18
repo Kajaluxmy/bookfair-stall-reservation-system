@@ -147,6 +147,109 @@ export default function AdminDashboard() {
         </div>
       )}
 
+       {/* Charts Grid */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-8">
+        {/* Revenue Distribution */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-stone-200">
+          <h2 className="font-display font-semibold text-lg mb-6">Revenue Distribution</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={revenueData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={5}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                {revenueData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value) => `Rs.${Number(value).toFixed(2)}`}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="flex justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
+              <span className="text-sm">Received: Rs.{Number(data.totalReceivedAmount || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-[#10b981]"></div>
+              <span className="text-sm">Pending: Rs.{Number(data.totalPendingAmount || 0).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Reservation Status */}
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-stone-200">
+          <h2 className="font-display font-semibold text-lg mb-6">Reservation Status</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={reservationData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" stroke="#78716c" />
+              <YAxis stroke="#78716c" />
+              <Tooltip />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                {reservationData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Genre Distribution */}
+        {data.genreDistribution && data.genreDistribution.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-stone-200 lg:col-span-2">
+            <h2 className="font-display font-semibold text-lg mb-6">Genre Distribution</h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={data.genreDistribution}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="count"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {data.genreDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              <div className="space-y-4">
+                {data.genreDistribution.map((genre, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-stone-600">{genre.name}</span>
+                      <span className="font-semibold">{Math.round(genre.percent)}%</span>
+                    </div>
+                    <div className="w-full bg-stone-100 rounded-full h-2.5">
+                      <div
+                        className="h-2.5 rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${genre.percent}%`,
+                          backgroundColor: COLORS[index % COLORS.length]
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminEvents from './pages/admin/AdminEvents';
 import AdminEventNew from './pages/admin/AdminEventNew';
+import AdminEventDetail from './pages/admin/AdminEventDetail';
 import { useAuth } from './context/AuthContext';
 
 function AdminLayout() {
@@ -51,6 +52,7 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="events" element={<AdminEvents />} />
               <Route path="events/new" element={<AdminEventNew />} />
+              <Route path="events/:id" element={<AdminEventDetail />} />
               <Route path="users" element={<AdminUsers />} />
           </Route>
         </Route>

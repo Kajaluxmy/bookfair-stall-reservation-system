@@ -71,6 +71,7 @@ export const reservationsApi = {
   approve: (id) => api(`/reservations/${id}/approve`, { method: 'POST' }),
   reject: (id) => api(`/reservations/${id}/reject`, { method: 'POST' }),
   refund: (id) => api(`/reservations/${id}/refund`, { method: 'POST' }),
+  check: (eventId) => api(`/reservations/check?eventId=${eventId}`),
 };
 
 
@@ -119,4 +120,8 @@ export const adminApi = {
       return data;
     },
   },
+  notifications: () => api('/admin/notifications'),
+  markNotificationRead: (id) => api(`/admin/notifications/mark-read/${id}`, { method: 'POST' }),
 };
+
+

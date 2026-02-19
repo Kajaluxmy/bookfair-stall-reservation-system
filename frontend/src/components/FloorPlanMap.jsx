@@ -179,7 +179,7 @@ export default function FloorPlanMap({
 
     return (
         <div style={{ width: '100%', position: 'relative' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14, padding: '10px 16px', background: '#fafafa', borderRadius: 10, border: '1px solid #e0e0e0', fontSize: 13 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14, padding: '10px 16px', background: '#fafafa', borderRadius: 10, border: '1px solid #e0e0e0', fontSize: 13,color: "black" }}>
                 {Object.entries(SIZES).map(([k, v]) => (
                     <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ width: 14, height: 14, borderRadius: 3, background: COLORS[k].bg, border: `2px solid ${COLORS[k].border}`, display: 'inline-block' }} />

@@ -10,6 +10,8 @@ export default function AdminProfile() {
   const [activeTab, setActiveTab] = useState('profile');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [admins, setAdmins] = useState([]);
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', phone: '', password: '' });
 
    // Profile editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -19,7 +21,6 @@ export default function AdminProfile() {
     if (isAdmin) {
       loadProfileData();
       loadAdmins();
-      loadDashboardStats();
     }
   }, [isAdmin]);
 
@@ -33,11 +34,19 @@ export default function AdminProfile() {
     }
   };
 
+    const loadAdmins = async () => {
+    try {
+      const data = await adminApi.profile.admins();
+      setAdmins(data);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to load admins' });
+    }
+  };
+
   const handleEditProfile = () => {
     setIsEditing(true);
   };
 
-  
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditedProfile({ name: profile.name, phone: profile.phone || '' });
@@ -83,6 +92,36 @@ export default function AdminProfile() {
       setShowPassword(false);
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to update password' });
+    }
+  };
+
+  const addAdmin = async (e) => {
+    e.preventDefault();
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
+      setMessage({ type: 'error', text: 'Please fill in all required fields' });
+      return;
+    }
+
+    setMessage({ type: '', text: '' });
+    try {
+      await adminApi.profile.addAdmin(newAdmin);
+      setMessage({ type: 'success', text: 'Admin added successfully' });
+      setNewAdmin({ name: '', email: '', phone: '', password: '' });
+      loadAdmins(); // Reload the admins list
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to add admin' });
+    }
+  };
+
+    const removeAdmin = async (adminId, adminName) => {
+    if (!window.confirm(`Are you sure you want to remove ${adminName} as an admin?`)) return;
+    
+    try {
+      await adminApi.profile.removeAdmin(adminId);
+      setMessage({ type: 'success', text: 'Admin removed successfully' });
+      setAdmins((prev) => prev.filter((a) => a.id !== adminId));
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to remove admin' });
     }
   };
 
@@ -197,8 +236,7 @@ export default function AdminProfile() {
                       <span>Edit Profile</span>
                     </button>
                   )}
-
-                 </div>
+                </div>
 
                   {/* Profile Details - Edit or View Mode */}
                 {isEditing ? (
@@ -322,15 +360,118 @@ export default function AdminProfile() {
                       </button>
                     </form>
                   </div>
-                )}
+                  )}
+                </div>
+              )}
 
+                {activeTab === 'admins' && (
+              <div className="space-y-6">
+                {/* Admin List */}
+                <div>
+                  <h3 className="text-lg font-semibold text-stone-800 mb-4">Current Administrators</h3>
+                  <div className="bg-stone-50 rounded-lg overflow-hidden">
+                    {admins.length > 0 ? (
+                      <ul className="divide-y divide-stone-200">
+                        {admins.map((admin) => (
+                          <li key={admin.id} className="p-4 hover:bg-white transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="h-10 w-10 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 font-semibold">
+                                  {admin.name?.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-stone-800">{admin.name}</p>
+                                  <p className="text-sm text-stone-500">{admin.email}</p>
+                                  {admin.phone && (
+                                    <p className="text-xs text-stone-400">{admin.phone}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {admin.id !== profile?.id && (
+                                <button
+                                  onClick={() => removeAdmin(admin.id, admin.name)}
+                                  className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Remove Admin"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <p className="text-stone-500">No administrators found</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Add New Admin Form */}
+                <div className="mt-8 pt-6 border-t border-stone-200">
+                  <h3 className="text-lg font-semibold text-stone-800 mb-4">Add New Administrator</h3>
+                  <form onSubmit={addAdmin} className="space-y-4 max-w-md">
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={newAdmin.name}
+                        onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                        className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={newAdmin.email}
+                        onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                        className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Phone (Optional)</label>
+                      <input
+                        type="text"
+                        value={newAdmin.phone}
+                        onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
+                        className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={newAdmin.password}
+                        onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                        className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        required
+                        minLength="6"
+                      />
+                      <p className="mt-1 text-xs text-stone-500">Minimum 6 characters</p>
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-stone-900 font-semibold py-3 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                    >
+                      Add Administrator
+                    </button>
+                  </form>
+                </div>
               </div>
-            )}
-
-            
+              )}
+             </div>
           </div>            
         </div>
       </div>
-    </div>
    );
 }

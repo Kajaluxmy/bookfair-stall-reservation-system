@@ -12,6 +12,8 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminEvents from './pages/admin/AdminEvents';
 import AdminEventNew from './pages/admin/AdminEventNew';
 import AdminEventDetail from './pages/admin/AdminEventDetail';
+import AdminProfile from './pages/admin/AdminProfile';
+import AdminSiteSettings from './pages/admin/AdminSiteSettings';
 import { useAuth } from './context/AuthContext';
 
 function AdminLayout() {
@@ -54,6 +56,8 @@ export default function App() {
               <Route path="events/new" element={<AdminEventNew />} />
               <Route path="events/:id" element={<AdminEventDetail />} />
               <Route path="users" element={<AdminUsers />} />
+              <Route path="profile" element={<AdminProfile />} />
+              <Route path="site-settings" element={<AdminSiteSettings />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

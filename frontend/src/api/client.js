@@ -124,4 +124,21 @@ export const adminApi = {
   markNotificationRead: (id) => api(`/admin/notifications/mark-read/${id}`, { method: 'POST' }),
 };
 
+const ML_BASE_URL = 'http://localhost:8003';
 
+export const mlApi = {
+  predict: async (stalls) => {
+    try {
+      const response = await fetch(`${ML_BASE_URL}/predict-genres`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stalls }),
+      });
+      if (!response.ok) throw new Error('ML Service Error');
+      return await response.json();
+    } catch (err) {
+      console.error('ML Prediction failed:', err);
+      return { top_genres: [] };
+    }
+  }
+};

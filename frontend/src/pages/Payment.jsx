@@ -109,7 +109,7 @@ export default function Payment() {
             <div className="space-y-2 text-gray-300 text-sm">
               <p><span className="font-semibold text-gray-100">Name:</span> {user?.name}</p>
               <p><span className="font-semibold text-gray-100">Email:</span> {user?.email}</p>
-              <p><span className="font-semibold text-gray-100">Phone:</span> {user?.phone || 'N/A'}</p>
+              {/* <p><span className="font-semibold text-gray-100">Phone:</span> {user?.phone}</p> */}
             </div>
           </div>
 

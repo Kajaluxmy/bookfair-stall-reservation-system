@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { eventsApi, publicApi, reservationsApi, mlApi } from '../api/client';
@@ -22,6 +22,7 @@ export default function Booking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [recommendations, setRecommendations] = useState([]);
+  const alertShown = useRef(false);
 
   const selectedStalls = useMemo(() => {
     return event?.stalls ? event.stalls.filter(s => selectedStallIds.includes(s.id)) : [];
@@ -69,19 +70,22 @@ export default function Booking() {
       .finally(() => setLoading(false));
   }, [id, isVendor, isAdmin, navigate]);
 
+  
   const handleStallClick = (stall) => {
     if (stall.blocked) return;
     if (bookedStallIds.includes(stall.id)) return;
 
-    setSelectedStallIds(prev => {
-      if (prev.includes(stall.id)) return prev.filter(x => x !== stall.id);
-      if (prev.length >= MAX_STALLS) {
-        setError(`Maximum ${MAX_STALLS} stalls per booking.`);
-        return prev;
-      }
-      setError('');
-      return [...prev, stall.id];
-    });
+    if (selectedStallIds.includes(stall.id)) {
+      setSelectedStallIds(prev => prev.filter(x => x !== stall.id));
+      return;
+    }
+
+    if (selectedStallIds.length >= MAX_STALLS) {
+      alert(`Maximum ${MAX_STALLS} stalls per booking.`);
+      return;
+    }
+
+    setSelectedStallIds(prev => [...prev, stall.id]);
   };
 
   const toggleGenre = (genreId) => {
@@ -176,25 +180,25 @@ export default function Booking() {
           </section>
 
           {/* AI Recommendations */}
-            {recommendations.length > 0 && (
-                <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl p-5 shadow-sm animate-fade-in">
-                    <h3 className="text-blue-500 font-bold mb-2 flex items-center gap-2">
-                        <span className="text-xl">✨</span>
-                        {selectedStallIds.length > 1 ? 'Best Genres for Selected Stalls' : 'Best Genres for this Location'}
-                    </h3>
-                    <p className="text-blue-700 text-sm mb-3">
-                        Based on historical performance data, these genres tend to perform best in the selected location(s):
-                    </p>
-                    <div className="flex flex-wrap gap-3">
-                        {recommendations.map((genre, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-violet-200 shadow-sm">
-                                <span className="text-violet-600 font-bold text-lg">✦{idx + 1}</span>
-                                <span className="text-stone-700 font-medium">{genre}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+          {recommendations.length > 0 && (
+            <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 rounded-xl p-5 shadow-sm animate-fade-in">
+              <h3 className="text-blue-500 font-bold mb-2 flex items-center gap-2">
+                <span className="text-xl">✨</span>
+                {selectedStallIds.length > 1 ? 'Best Genres for Selected Stalls' : 'Best Genres for this Location'}
+              </h3>
+              <p className="text-blue-700 text-sm mb-3">
+                Based on historical performance data, these genres tend to perform best in the selected location(s):
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {recommendations.map((genre, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-violet-200 shadow-sm">
+                    <span className="text-violet-600 font-bold text-lg">✦{idx + 1}</span>
+                    <span className="text-stone-700 font-medium">{genre}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Stall Description */}
           <div className="space-y-2">
@@ -217,11 +221,10 @@ export default function Booking() {
                 return (
                   <label
                     key={g.id}
-                    className={`cursor-pointer px-4 py-2 rounded-md border text-sm transition-all duration-200 ${
-                      selected
-                        ? 'bg-green-600 text-white border-green-500'
-                        : 'bg-gray-700 text-gray-300 border-gray-600 hover:border-green-500'
-                    }`}
+                    className={`cursor-pointer px-4 py-2 rounded-md border text-sm transition-all duration-200 ${selected
+                      ? 'bg-green-600 text-white border-green-500'
+                      : 'bg-gray-700 text-gray-300 border-gray-600 hover:border-green-500'
+                      }`}
                   >
                     <input
                       type="checkbox"

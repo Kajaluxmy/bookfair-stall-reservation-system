@@ -78,18 +78,7 @@ export default function About() {
         </button>
       )}
 
-      <style>
-        {`
-          .animate-fadeIn {
-            animation: fadeIn 0.8s ease-in-out;
-          }
 
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}
-      </style>
     </div>
   );
 }

@@ -67,12 +67,6 @@ export default function AdminEventDetail() {
           <h2 className="font-semibold text-lg flex items-center gap-2">
             Reservation Map
           </h2>
-          <button
-            onClick={() => setEditingLayout(!editingLayout)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${editingLayout ? 'bg-blue-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
-          >
-            {editingLayout ? ' Dragging Mode ON' : '↔ Edit Layout'}
-          </button>
         </div>
         <p className="text-stone-500 text-sm mb-4">
           {editingLayout ? 'Drag stalls to rearrange.' : 'Click a stall to block/unblock. Hover for vendor info.'}
